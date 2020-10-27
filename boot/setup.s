@@ -111,6 +111,7 @@ is_disk1:
 ! first we move the system to it's rightful place
 
 	mov	ax,#0x0000
+    // reset DF=0
 	cld			! 'direction'=0, movs moves forward
 do_move:
 	mov	es,ax		! destination segment
@@ -134,6 +135,7 @@ end_move:
 	lgdt	gdt_48		! load gdt with whatever appropriate
 
 ! that was painless, now we enable A20
+    // 启用A20，表示开始使用32位地址空间。
 
 	call	empty_8042
 	mov	al,#0xD1		! command write

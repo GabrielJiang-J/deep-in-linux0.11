@@ -30,6 +30,8 @@ startup_32:
 	mov %ax,%gs
 	lss _stack_start,%esp
 	xorl %eax,%eax
+    // 检查A20是否打开，如果没有打开，则计算机处于20位寻址模式，超过0xFFFFF，一定会
+    // 回滚，也就是0x000000处的值和0x100000处的值是一样的。
 1:	incl %eax		# check that A20 really IS enabled
 	movl %eax,0x000000	# loop forever if it isn't
 	cmpl %eax,0x100000
@@ -132,6 +134,7 @@ pg3:
 _tmp_floppy_area:
 	.fill 1024,1,0
 
+// 为调用main函数传参数。
 after_page_tables:
 	pushl $0		# These are the parameters to main :-)
 	pushl $0

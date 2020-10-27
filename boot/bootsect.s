@@ -72,6 +72,7 @@ load_setup:
 	mov	cx,#0x0002		! sector 2, track 0
 	mov	bx,#0x0200		! address = 512, in INITSEG
 	mov	ax,#0x0200+SETUPLEN	! service 2, nr of sectors
+    // 0x13是bios在实模式下设置的中断处理程序。
 	int	0x13			! read it
 	jnc	ok_load_setup		! ok - continue
 	mov	dx,#0x0000
@@ -107,6 +108,7 @@ ok_load_setup:
 ! ok, we've written the message, now
 ! we want to load the system (at 0x10000)
 
+    // ax=es=0x1000
 	mov	ax,#SYSSEG
 	mov	es,ax		! segment of 0x010000
 	call	read_it
