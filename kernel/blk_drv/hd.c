@@ -43,7 +43,12 @@ static int reset = 1;
  *  This struct defines the HD's and their types.
  */
 struct hd_i_struct {
-	int head,sect,cyl,wpcom,lzone,ctl;
+	int head, // 磁头数
+        sect, // 每磁道扇区数
+        cyl, // 柱面数
+        wpcom,
+        lzone,
+        ctl;
 	};
 #ifdef HD_TYPE
 struct hd_i_struct hd_info[] = { HD_TYPE };
@@ -89,11 +94,12 @@ int sys_setup(void * BIOS)
 		hd_info[drive].sect = *(unsigned char *) (14+BIOS);
 		BIOS += 16;
 	}
-	if (hd_info[1].cyl)
+	if (hd_info[1].cyl) // 判断有几个硬盘
 		NR_HD=2;
 	else
 		NR_HD=1;
 #endif
+    // 一个物理盘最多可以分4个逻辑盘，0是物理盘，1~4是逻辑盘，共5个。
 	for (i=0 ; i<NR_HD ; i++) {
 		hd[i*5].start_sect = 0;
 		hd[i*5].nr_sects = hd_info[i].head*
@@ -133,6 +139,7 @@ int sys_setup(void * BIOS)
 		hd[i*5].start_sect = 0;
 		hd[i*5].nr_sects = 0;
 	}
+    // 第一个物理盘设备号是0x300，第二个是0x305，读每个物理盘的0号块，即引导块，有分区信息
 	for (drive=0 ; drive<NR_HD ; drive++) {
 		if (!(bh = bread(0x300 + drive*5,0))) {
 			printk("Unable to read partition table of drive %d\n\r",

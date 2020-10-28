@@ -72,7 +72,7 @@ static void add_request(struct blk_dev_struct * dev, struct request * req)
 	if (!(tmp = dev->current_request)) {
 		dev->current_request = req;
 		sti();
-		(dev->request_fn)();
+		(dev->request_fn)(); // do_hd_request()
 		return;
 	}
 	for ( ; tmp->next ; tmp=tmp->next)

@@ -203,6 +203,7 @@ struct buffer_head * get_hash_table(int dev, int block)
  * The algoritm is changed: hopefully better, and an elusive bug removed.
  */
 #define BADNESS(bh) (((bh)->b_dirt<<1)+(bh)->b_lock)
+// 在缓冲区得到与dev、block匹配的或空闲的缓冲块
 struct buffer_head * getblk(int dev,int block)
 {
 	struct buffer_head * tmp, * bh;
