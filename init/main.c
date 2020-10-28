@@ -73,6 +73,7 @@ inb_p(0x71); \
 
 #define BCD_TO_BIN(val) ((val)=((val)&15) + ((val)>>4)*10)
 
+// 开机启动时间设置
 static void time_init(void)
 {
 	struct tm time;
@@ -133,8 +134,8 @@ void main(void)		/* This really IS void, no error here. */
 	buffer_init(buffer_memory_end);
 	hd_init();
 	floppy_init();
-	sti();
-	move_to_user_mode();
+	sti(); // 开启中断, IF=1
+	move_to_user_mode(); // 模拟中断，实现特权级从0到3的反转，使0号进程成为真正的进程
 	if (!fork()) {		/* we count on this going ok */
 		init();
 	}

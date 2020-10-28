@@ -43,7 +43,7 @@ void show_stat(void)
 			show_task(i,task[i]);
 }
 
-#define LATCH (1193180/HZ)
+#define LATCH (1193180/HZ) // 每10ms产生一次时钟中断
 
 extern void mem_use(void);
 
@@ -406,7 +406,7 @@ void sched_init(void)
 	outb_p(0x36,0x43);		/* binary, mode 3, LSB/MSB, ch 0 */
 	outb_p(LATCH & 0xff , 0x40);	/* LSB */
 	outb(LATCH >> 8 , 0x40);	/* MSB */
-	set_intr_gate(0x20,&timer_interrupt);
-	outb(inb_p(0x21)&~0x01,0x21);
-	set_system_gate(0x80,&system_call);
+	set_intr_gate(0x20,&timer_interrupt); // 设置时钟中断，进程调度的基础
+	outb(inb_p(0x21)&~0x01,0x21); // 允许时间中断
+	set_system_gate(0x80,&system_call); // 设置系统调用总入口
 }
