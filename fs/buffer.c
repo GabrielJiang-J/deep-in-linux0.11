@@ -36,8 +36,10 @@ int NR_BUFFERS = 0;
 static inline void wait_on_buffer(struct buffer_head * bh)
 {
 	cli();
+
 	while (bh->b_lock)
 		sleep_on(&bh->b_wait);
+
 	sti();
 }
 
@@ -69,19 +71,26 @@ int sync_dev(int dev)
 	for (i=0 ; i<NR_BUFFERS ; i++,bh++) {
 		if (bh->b_dev != dev)
 			continue;
+
 		wait_on_buffer(bh);
+
 		if (bh->b_dev == dev && bh->b_dirt)
 			ll_rw_block(WRITE,bh);
 	}
+
 	sync_inodes();
+
 	bh = start_buffer;
 	for (i=0 ; i<NR_BUFFERS ; i++,bh++) {
 		if (bh->b_dev != dev)
 			continue;
+
 		wait_on_buffer(bh);
+
 		if (bh->b_dev == dev && bh->b_dirt)
 			ll_rw_block(WRITE,bh);
 	}
+
 	return 0;
 }
 
@@ -94,7 +103,9 @@ void inline invalidate_buffers(int dev)
 	for (i=0 ; i<NR_BUFFERS ; i++,bh++) {
 		if (bh->b_dev != dev)
 			continue;
+
 		wait_on_buffer(bh);
+
 		if (bh->b_dev == dev)
 			bh->b_uptodate = bh->b_dirt = 0;
 	}
@@ -120,12 +131,16 @@ void check_disk_change(int dev)
 
 	if (MAJOR(dev) != 2)
 		return;
+
 	if (!floppy_change(dev & 0x03))
 		return;
+
 	for (i=0 ; i<NR_SUPER ; i++)
 		if (super_block[i].s_dev == dev)
 			put_super(super_block[i].s_dev);
+
 	invalidate_inodes(dev);
+
 	invalidate_buffers(dev);
 }
 
@@ -137,15 +152,20 @@ static inline void remove_from_queues(struct buffer_head * bh)
 /* remove from hash-queue */
 	if (bh->b_next)
 		bh->b_next->b_prev = bh->b_prev;
+
 	if (bh->b_prev)
 		bh->b_prev->b_next = bh->b_next;
+
 	if (hash(bh->b_dev,bh->b_blocknr) == bh)
 		hash(bh->b_dev,bh->b_blocknr) = bh->b_next;
+
 /* remove from free list */
 	if (!(bh->b_prev_free) || !(bh->b_next_free))
 		panic("Free block list corrupted");
+
 	bh->b_prev_free->b_next_free = bh->b_next_free;
 	bh->b_next_free->b_prev_free = bh->b_prev_free;
+
 	if (free_list == bh)
 		free_list = bh->b_next_free;
 }
@@ -160,8 +180,10 @@ static inline void insert_into_queues(struct buffer_head * bh)
 /* put the buffer in new hash-queue if it has a device */
 	bh->b_prev = NULL;
 	bh->b_next = NULL;
+
 	if (!bh->b_dev)
 		return;
+
 	bh->b_next = hash(bh->b_dev,bh->b_blocknr);
 	hash(bh->b_dev,bh->b_blocknr) = bh;
 	bh->b_next->b_prev = bh;
@@ -174,6 +196,7 @@ static struct buffer_head * find_buffer(int dev, int block)
 	for (tmp = hash(dev,block) ; tmp != NULL ; tmp = tmp->b_next)
 		if (tmp->b_dev==dev && tmp->b_blocknr==block)
 			return tmp;
+
 	return NULL;
 }
 
@@ -191,10 +214,14 @@ struct buffer_head * get_hash_table(int dev, int block)
 	for (;;) {
 		if (!(bh=find_buffer(dev,block)))
 			return NULL;
+
 		bh->b_count++;
+
 		wait_on_buffer(bh);
+
 		if (bh->b_dev == dev && bh->b_blocknr == block)
 			return bh;
+
 		bh->b_count--;
 	}
 }
@@ -215,34 +242,44 @@ struct buffer_head * getblk(int dev,int block)
 repeat:
 	if (bh = get_hash_table(dev,block))
 		return bh;
+
 	tmp = free_list;
 	do {
 		if (tmp->b_count)
 			continue;
+
 		if (!bh || BADNESS(tmp)<BADNESS(bh)) {
 			bh = tmp;
+
 			if (!BADNESS(tmp))
 				break;
 		}
 /* and repeat until we find something good */
 	} while ((tmp = tmp->b_next_free) != free_list);
+
 	if (!bh) {
 		sleep_on(&buffer_wait);
 		goto repeat;
 	}
+
 	wait_on_buffer(bh);
+
 	if (bh->b_count)
 		goto repeat;
+
 	while (bh->b_dirt) {
 		sync_dev(bh->b_dev);
 		wait_on_buffer(bh);
+
 		if (bh->b_count)
 			goto repeat;
 	}
+
 /* NOTE!! While we slept waiting for this block, somebody else might */
 /* already have added "this" block to the cache. check it */
 	if (find_buffer(dev,block))
 		goto repeat;
+
 /* OK, FINALLY we know that this buffer is the only one of it's kind, */
 /* and that it's unused (b_count=0), unlocked (b_lock=0), and clean */
 	bh->b_count=1;
@@ -252,6 +289,7 @@ repeat:
 	bh->b_dev=dev;
 	bh->b_blocknr=block;
 	insert_into_queues(bh);
+
 	return bh;
 }
 
@@ -259,9 +297,12 @@ void brelse(struct buffer_head * buf)
 {
 	if (!buf)
 		return;
+
 	wait_on_buffer(buf);
+
 	if (!(buf->b_count--))
 		panic("Trying to free free buffer");
+
 	wake_up(&buffer_wait);
 }
 
@@ -275,13 +316,19 @@ struct buffer_head * bread(int dev,int block)
 
 	if (!(bh=getblk(dev,block)))
 		panic("bread: getblk returned NULL\n");
+
 	if (bh->b_uptodate)
 		return bh;
+
 	ll_rw_block(READ,bh);
+
 	wait_on_buffer(bh);
+
 	if (bh->b_uptodate)
 		return bh;
+
 	brelse(bh);
+
 	return NULL;
 }
 
@@ -333,10 +380,13 @@ struct buffer_head * breada(int dev,int first, ...)
 	struct buffer_head * bh, *tmp;
 
 	va_start(args,first);
+
 	if (!(bh=getblk(dev,first)))
 		panic("bread: getblk returned NULL\n");
+
 	if (!bh->b_uptodate)
 		ll_rw_block(READ,bh);
+
 	while ((first=va_arg(args,int))>=0) {
 		tmp=getblk(dev,first);
 		if (tmp) {
@@ -345,11 +395,16 @@ struct buffer_head * breada(int dev,int first, ...)
 			tmp->b_count--;
 		}
 	}
+
 	va_end(args);
+
 	wait_on_buffer(bh);
+
 	if (bh->b_uptodate)
 		return bh;
+
 	brelse(bh);
+
 	return (NULL);
 }
 
@@ -363,6 +418,7 @@ void buffer_init(long buffer_end)
 		b = (void *) (640*1024);
 	else
 		b = (void *) buffer_end;
+
 	while ( (b -= BLOCK_SIZE) >= ((void *) (h+1)) ) {
 		h->b_dev = 0;
 		h->b_dirt = 0;
