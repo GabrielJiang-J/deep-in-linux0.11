@@ -114,6 +114,7 @@ void schedule(void)
 					(*p)->signal |= (1<<(SIGALRM-1));
 					(*p)->alarm = 0;
 				}
+
 			if (((*p)->signal & ~(_BLOCKABLE & (*p)->blocked)) &&
 			(*p)->state==TASK_INTERRUPTIBLE)
 				(*p)->state=TASK_RUNNING;
@@ -126,18 +127,23 @@ void schedule(void)
 		next = 0;
 		i = NR_TASKS;
 		p = &task[NR_TASKS];
+
 		while (--i) {
 			if (!*--p)
 				continue;
+
 			if ((*p)->state == TASK_RUNNING && (*p)->counter > c)
 				c = (*p)->counter, next = i;
 		}
+
 		if (c) break;
+
 		for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
 			if (*p)
 				(*p)->counter = ((*p)->counter >> 1) +
 						(*p)->priority;
 	}
+
 	switch_to(next);
 }
 
@@ -154,12 +160,16 @@ void sleep_on(struct task_struct **p)
 
 	if (!p)
 		return;
+
 	if (current == &(init_task.task))
 		panic("task[0] trying to sleep");
+
 	tmp = *p;
 	*p = current;
 	current->state = TASK_UNINTERRUPTIBLE;
+
 	schedule();
+
 	if (tmp)
 		tmp->state=0;
 }

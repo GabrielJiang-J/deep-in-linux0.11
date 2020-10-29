@@ -86,13 +86,16 @@ static void time_init(void)
 		time.tm_mon = CMOS_READ(8);
 		time.tm_year = CMOS_READ(9);
 	} while (time.tm_sec != CMOS_READ(0));
+
 	BCD_TO_BIN(time.tm_sec);
 	BCD_TO_BIN(time.tm_min);
 	BCD_TO_BIN(time.tm_hour);
 	BCD_TO_BIN(time.tm_mday);
 	BCD_TO_BIN(time.tm_mon);
 	BCD_TO_BIN(time.tm_year);
+
 	time.tm_mon--;
+
 	startup_time = kernel_mktime(&time);
 }
 
@@ -110,20 +113,26 @@ void main(void)		/* This really IS void, no error here. */
  */
  	ROOT_DEV = ORIG_ROOT_DEV;
  	drive_info = DRIVE_INFO;
+
 	memory_end = (1<<20) + (EXT_MEM_K<<10);
 	memory_end &= 0xfffff000;
+
 	if (memory_end > 16*1024*1024)
 		memory_end = 16*1024*1024;
+
 	if (memory_end > 12*1024*1024) 
 		buffer_memory_end = 4*1024*1024;
 	else if (memory_end > 6*1024*1024)
 		buffer_memory_end = 2*1024*1024;
 	else
 		buffer_memory_end = 1*1024*1024;
+
 	main_memory_start = buffer_memory_end;
+
 #ifdef RAMDISK
 	main_memory_start += rd_init(main_memory_start, RAMDISK*1024);
 #endif
+
 	mem_init(main_memory_start,memory_end);
 	trap_init();
 	blk_dev_init();
@@ -134,11 +143,15 @@ void main(void)		/* This really IS void, no error here. */
 	buffer_init(buffer_memory_end);
 	hd_init();
 	floppy_init();
+
 	sti(); // 开启中断, IF=1
+
 	move_to_user_mode(); // 模拟中断，实现特权级从0到3的反转，使0号进程成为真正的进程
+
 	if (!fork()) {		/* we count on this going ok */
 		init();
 	}
+
 /*
  *   NOTE!!   For any other task 'pause()' would mean we have to get a
  * signal to awaken, but task0 is the sole exception (see 'schedule()')
@@ -182,11 +195,15 @@ void init(void)
 
 	if (!(pid=fork())) {
 		close(0);
+
 		if (open("/etc/rc",O_RDONLY,0))
 			_exit(1);
+
 		execve("/bin/sh",argv_rc,envp_rc);
+
 		_exit(2);
 	}
+
 	if (pid>0)
 		while (pid != wait(&i))
 			/* nothing */;
@@ -200,9 +217,11 @@ void init(void)
 		if (!pid) {
 			close(0);close(1);close(2);
 			setsid();
+
 			(void) open("/dev/tty0",O_RDWR,0);
 			(void) dup(0);
 			(void) dup(0);
+
 			_exit(execve("/bin/sh",argv,envp));
 		}
 
