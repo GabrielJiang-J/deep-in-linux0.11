@@ -310,11 +310,14 @@ void bread_page(unsigned long address,int dev,int b[4])
 					ll_rw_block(READ,bh[i]);
 		} else
 			bh[i] = NULL;
+
 	for (i=0 ; i<4 ; i++,address += BLOCK_SIZE)
 		if (bh[i]) {
 			wait_on_buffer(bh[i]);
+
 			if (bh[i]->b_uptodate)
 				COPYBLK((unsigned long) bh[i]->b_data,address);
+
 			brelse(bh[i]);
 		}
 }
