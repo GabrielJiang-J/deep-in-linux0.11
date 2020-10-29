@@ -54,7 +54,7 @@ ROOT_DEV = 0x306
 
 entry start
 start:
-    //将DS：SI的内容复制到至ES：DI，即从0x07c0:0000到0x9000:0000
+    //将DS：SI的256*2字节的内容复制到ES：DI，即从0x07c0:0000到0x9000:0000
 	mov	ax,#BOOTSEG
 	mov	ds,ax
 	mov	ax,#INITSEG
