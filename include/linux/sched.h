@@ -98,8 +98,8 @@ struct task_struct {
 	struct m_inode * pwd;
 	struct m_inode * root;
 	struct m_inode * executable;
-	unsigned long close_on_exec;
-	struct file * filp[NR_OPEN];
+	unsigned long close_on_exec; // 已打开文件的位图，用于在执行execve操作时，关闭已打开的文件
+	struct file * filp[NR_OPEN]; // 每个进程打开的文件列表
 /* ldt for this task 0 - zero 1 - cs 2 - ds&ss */
 	struct desc_struct ldt[3];
 /* tss for this task */

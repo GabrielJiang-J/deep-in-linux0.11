@@ -171,12 +171,15 @@ void init(void)
 	int pid,i;
 
 	setup((void *) &drive_info); // 为安装硬盘文件系统做准备
-	(void) open("/dev/tty0",O_RDWR,0);
-	(void) dup(0);
-	(void) dup(0);
+
+	(void) open("/dev/tty0",O_RDWR,0); // 打开标准输入设备文件
+	(void) dup(0); // 复制fd=0的文件，打开标准输出设备文件
+	(void) dup(0); // 复制fd=0的文件，打开标准错误设备文件
+
 	printf("%d buffers = %d bytes buffer space\n\r",NR_BUFFERS,
 		NR_BUFFERS*BLOCK_SIZE);
 	printf("Free mem: %d bytes\n\r",memory_end-main_memory_start);
+
 	if (!(pid=fork())) {
 		close(0);
 		if (open("/etc/rc",O_RDONLY,0))
@@ -187,11 +190,13 @@ void init(void)
 	if (pid>0)
 		while (pid != wait(&i))
 			/* nothing */;
+
 	while (1) {
 		if ((pid=fork())<0) {
 			printf("Fork failed in init\r\n");
 			continue;
 		}
+
 		if (!pid) {
 			close(0);close(1);close(2);
 			setsid();
@@ -200,11 +205,15 @@ void init(void)
 			(void) dup(0);
 			_exit(execve("/bin/sh",argv,envp));
 		}
+
 		while (1)
 			if (pid == wait(&i))
 				break;
+
 		printf("\n\rchild %d died with code %04x\n\r",pid,i);
+
 		sync();
 	}
+
 	_exit(0);	/* NOTE! _exit, not exit() */
 }

@@ -1,8 +1,11 @@
+// 从路径中逐一提取字符串
 extern inline unsigned char get_fs_byte(const char * addr)
 {
 	unsigned register char _v;
 
-	__asm__ ("movb %%fs:%1,%0":"=r" (_v):"m" (*addr));
+	__asm__ ("movb %%fs:%1,%0" // movb指令可以将8位，即1字节数据移入指定寄存器FS
+            :"=r" (_v) // _v是输出的字符
+            :"m" (*addr)); // *addr是输入的内存地址
 	return _v;
 }
 

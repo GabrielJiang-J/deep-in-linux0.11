@@ -108,6 +108,7 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
 	*res_dir = NULL;
 	if (!namelen)
 		return NULL;
+
 /* check for '..', as we might have to do some "magic" for it */
 	if (namelen==2 && get_fs_byte(name)=='.' && get_fs_byte(name+1)=='.') {
 /* '..' in a pseudo-root results in a faked '.' (just change namelen) */
@@ -124,12 +125,16 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
 			}
 		}
 	}
+
 	if (!(block = (*dir)->i_zone[0]))
 		return NULL;
+
 	if (!(bh = bread((*dir)->i_dev,block)))
 		return NULL;
+
 	i = 0;
 	de = (struct dir_entry *) bh->b_data;
+
 	while (i < entries) {
 		if ((char *)de >= BLOCK_SIZE+bh->b_data) {
 			brelse(bh);
@@ -149,6 +154,7 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
 		i++;
 	}
 	brelse(bh);
+
 	return NULL;
 }
 
@@ -236,8 +242,10 @@ static struct m_inode * get_dir(const char * pathname)
 
 	if (!current->root || !current->root->i_count)
 		panic("No root inode");
+
 	if (!current->pwd || !current->pwd->i_count)
 		panic("No cwd inode");
+
 	if ((c=get_fs_byte(pathname))=='/') {
 		inode = current->root;
 		pathname++;
@@ -245,25 +253,33 @@ static struct m_inode * get_dir(const char * pathname)
 		inode = current->pwd;
 	else
 		return NULL;	/* empty name is bad */
+
 	inode->i_count++;
+
 	while (1) {
 		thisname = pathname;
 		if (!S_ISDIR(inode->i_mode) || !permission(inode,MAY_EXEC)) {
 			iput(inode);
 			return NULL;
 		}
+
 		for(namelen=0;(c=get_fs_byte(pathname++))&&(c!='/');namelen++)
 			/* nothing */ ;
+
 		if (!c)
 			return inode;
+
 		if (!(bh = find_entry(&inode,thisname,namelen,&de))) {
 			iput(inode);
 			return NULL;
 		}
+
 		inr = de->inode;
 		idev = inode->i_dev;
+
 		brelse(bh);
 		iput(inode);
+
 		if (!(inode = iget(idev,inr)))
 			return NULL;
 	}
@@ -284,12 +300,15 @@ static struct m_inode * dir_namei(const char * pathname,
 
 	if (!(dir = get_dir(pathname)))
 		return NULL;
+
 	basename = pathname;
 	while (c=get_fs_byte(pathname++))
 		if (c=='/')
 			basename=pathname;
+
 	*namelen = pathname-basename-1;
 	*name = basename;
+
 	return dir;
 }
 
@@ -345,10 +364,13 @@ int open_namei(const char * pathname, int flag, int mode,
 
 	if ((flag & O_TRUNC) && !(flag & O_ACCMODE))
 		flag |= O_WRONLY;
+
 	mode &= 0777 & ~current->umask;
 	mode |= I_REGULAR;
+
 	if (!(dir = dir_namei(pathname,&namelen,&basename)))
 		return -ENOENT;
+
 	if (!namelen) {			/* special case: '/usr/' etc */
 		if (!(flag & (O_ACCMODE|O_CREAT|O_TRUNC))) {
 			*res_inode=dir;
@@ -357,6 +379,7 @@ int open_namei(const char * pathname, int flag, int mode,
 		iput(dir);
 		return -EISDIR;
 	}
+
 	bh = find_entry(&dir,basename,namelen,&de);
 	if (!bh) {
 		if (!(flag & O_CREAT)) {
@@ -389,10 +412,12 @@ int open_namei(const char * pathname, int flag, int mode,
 		*res_inode = inode;
 		return 0;
 	}
+
 	inr = de->inode;
 	dev = dir->i_dev;
 	brelse(bh);
 	iput(dir);
+
 	if (flag & O_EXCL)
 		return -EEXIST;
 	if (!(inode=iget(dev,inr)))
@@ -402,10 +427,12 @@ int open_namei(const char * pathname, int flag, int mode,
 		iput(inode);
 		return -EPERM;
 	}
+
 	inode->i_atime = CURRENT_TIME;
 	if (flag & O_TRUNC)
 		truncate(inode);
 	*res_inode = inode;
+
 	return 0;
 }
 

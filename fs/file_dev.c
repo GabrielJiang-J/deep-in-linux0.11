@@ -61,11 +61,13 @@ int file_write(struct m_inode * inode, struct file * filp, char * buf, int count
 		pos = inode->i_size;
 	else
 		pos = filp->f_pos;
+
 	while (i<count) {
 		if (!(block = create_block(inode,pos/BLOCK_SIZE)))
 			break;
 		if (!(bh=bread(inode->i_dev,block)))
 			break;
+
 		c = pos % BLOCK_SIZE;
 		p = c + bh->b_data;
 		bh->b_dirt = 1;
@@ -81,10 +83,12 @@ int file_write(struct m_inode * inode, struct file * filp, char * buf, int count
 			*(p++) = get_fs_byte(buf++);
 		brelse(bh);
 	}
+
 	inode->i_mtime = CURRENT_TIME;
 	if (!(filp->f_flags & O_APPEND)) {
 		filp->f_pos = pos;
 		inode->i_ctime = CURRENT_TIME;
 	}
+
 	return (i?i:-1);
 }
