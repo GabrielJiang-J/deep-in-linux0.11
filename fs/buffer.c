@@ -374,13 +374,16 @@ void buffer_init(long buffer_end)
 		h->b_next_free = h+1;
 		h++;
 		NR_BUFFERS++;
+
 		if (b == (void *) 0x100000)
 			b = (void *) 0xA0000;
 	}
+
 	h--;
 	free_list = start_buffer;
 	free_list->b_prev_free = h;
 	h->b_next_free = free_list;
+
 	for (i=0;i<NR_HASH;i++)
 		hash_table[i]=NULL;
 }	

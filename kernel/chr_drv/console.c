@@ -631,6 +631,7 @@ void con_init(void)
 		video_mem_start = 0xb0000;
 		video_port_reg = 0x3b4;
 		video_port_val = 0x3b5;
+
 		if ((ORIG_VIDEO_EGA_BX & 0xff) != 0x10)
 		{
 			video_type = VIDEO_TYPE_EGAM;
@@ -649,6 +650,7 @@ void con_init(void)
 		video_mem_start = 0xb8000;
 		video_port_reg	= 0x3d4;
 		video_port_val	= 0x3d5;
+
 		if ((ORIG_VIDEO_EGA_BX & 0xff) != 0x10)
 		{
 			video_type = VIDEO_TYPE_EGAC;

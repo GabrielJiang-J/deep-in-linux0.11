@@ -399,8 +399,10 @@ void sched_init(void)
 
 	if (sizeof(struct sigaction) != 16)
 		panic("Struct sigaction MUST be 16 bytes");
+
 	set_tss_desc(gdt+FIRST_TSS_ENTRY,&(init_task.task.tss));
 	set_ldt_desc(gdt+FIRST_LDT_ENTRY,&(init_task.task.ldt));
+
 	p = gdt+2+FIRST_TSS_ENTRY;
 	for(i=1;i<NR_TASKS;i++) {
 		task[i] = NULL;
@@ -409,13 +411,16 @@ void sched_init(void)
 		p->a=p->b=0;
 		p++;
 	}
+
 /* Clear NT, so that we won't have troubles with that later on */
 	__asm__("pushfl ; andl $0xffffbfff,(%esp) ; popfl");
 	ltr(0);
 	lldt(0);
+
 	outb_p(0x36,0x43);		/* binary, mode 3, LSB/MSB, ch 0 */
 	outb_p(LATCH & 0xff , 0x40);	/* LSB */
 	outb(LATCH >> 8 , 0x40);	/* MSB */
+
 	set_intr_gate(0x20,&timer_interrupt); // 设置时钟中断，进程调度的基础
 	outb(inb_p(0x21)&~0x01,0x21); // 允许时间中断
 	set_system_gate(0x80,&system_call); // 设置系统调用总入口
