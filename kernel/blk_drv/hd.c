@@ -83,7 +83,9 @@ int sys_setup(void * BIOS)
 
 	if (!callable)
 		return -1;
+
 	callable = 0;
+
 #ifndef HD_TYPE
 	for (drive=0 ; drive<2 ; drive++) {
 		hd_info[drive].cyl = *(unsigned short *) BIOS;
@@ -94,11 +96,13 @@ int sys_setup(void * BIOS)
 		hd_info[drive].sect = *(unsigned char *) (14+BIOS);
 		BIOS += 16;
 	}
+
 	if (hd_info[1].cyl) // 判断有几个硬盘
 		NR_HD=2;
 	else
 		NR_HD=1;
 #endif
+
     // 一个物理盘最多可以分4个逻辑盘，0是物理盘，1~4是逻辑盘，共5个。
 	for (i=0 ; i<NR_HD ; i++) {
 		hd[i*5].start_sect = 0;
@@ -135,10 +139,12 @@ int sys_setup(void * BIOS)
 			NR_HD = 1;
 	else
 		NR_HD = 0;
+
 	for (i = NR_HD ; i < 2 ; i++) {
 		hd[i*5].start_sect = 0;
 		hd[i*5].nr_sects = 0;
 	}
+
     // 第一个物理盘设备号是0x300，第二个是0x305，读每个物理盘的0号块，即引导块，有分区信息
 	for (drive=0 ; drive<NR_HD ; drive++) {
 		if (!(bh = bread(0x300 + drive*5,0))) {
@@ -146,22 +152,29 @@ int sys_setup(void * BIOS)
 				drive);
 			panic("");
 		}
+
 		if (bh->b_data[510] != 0x55 || (unsigned char)
 		    bh->b_data[511] != 0xAA) {
 			printk("Bad partition table on drive %d\n\r",drive);
 			panic("");
 		}
+
 		p = 0x1BE + (void *)bh->b_data;
 		for (i=1;i<5;i++,p++) {
 			hd[i+5*drive].start_sect = p->start_sect;
 			hd[i+5*drive].nr_sects = p->nr_sects;
 		}
+
 		brelse(bh);
 	}
+
 	if (NR_HD)
 		printk("Partition table%s ok.\n\r",(NR_HD>1)?"s":"");
+
 	rd_load();
+
 	mount_root();
+
 	return (0);
 }
 
