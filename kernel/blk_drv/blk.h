@@ -20,6 +20,8 @@
  * paging, 'bh' is NULL, and 'waiting' is used to wait for
  * read/write completion.
  */
+// 主要负责缓冲区中的数据与块设备之间的数据交互，在确保数据交互正确的前提下，
+// 尽可能及时地将进程修改过的缓冲块中的数据同步到块设备上。
 struct request {
 	int dev;		/* -1 if no request */
 	int cmd;		/* READ or WRITE */
@@ -109,23 +111,31 @@ extern inline void unlock_buffer(struct buffer_head * bh)
 extern inline void end_request(int uptodate)
 {
 	DEVICE_OFF(CURRENT->dev);
+
 	if (CURRENT->bh) {
+		// 将b_uptodate字段设置为1，表示已经更新，数据内容是同步的
 		CURRENT->bh->b_uptodate = uptodate;
 		unlock_buffer(CURRENT->bh);
 	}
+
 	if (!uptodate) {
 		printk(DEVICE_NAME " I/O error\n\r");
 		printk("dev %04x, block %d\n\r",CURRENT->dev,
 			CURRENT->bh->b_blocknr);
 	}
+
 	wake_up(&CURRENT->waiting);
 	wake_up(&wait_for_request);
+
 	CURRENT->dev = -1;
+
+	// 将当前请求项设置为下一个，为处理剩余请求项做准备
 	CURRENT = CURRENT->next;
 }
 
 #define INIT_REQUEST \
 repeat: \
+	// CURRENT为空，说明没有剩余请求项了
 	if (!CURRENT) \
 		return; \
 	if (MAJOR(CURRENT->dev) != MAJOR_NR) \

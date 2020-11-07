@@ -66,22 +66,30 @@ static void add_request(struct blk_dev_struct * dev, struct request * req)
 	struct request * tmp;
 
 	req->next = NULL;
+
 	cli();
+
 	if (req->bh)
 		req->bh->b_dirt = 0;
+
+	// 只要磁盘空闲，就立即让当前请求项对应的缓冲块和硬盘进行交互
 	if (!(tmp = dev->current_request)) {
 		dev->current_request = req;
 		sti();
-		(dev->request_fn)(); // do_hd_request()
+		(dev->request_fn)(); // 下达硬盘操作命令，do_hd_request()
 		return;
 	}
+
+	// 如果磁盘忙着，就把请求项载入请求项队列
 	for ( ; tmp->next ; tmp=tmp->next)
 		if ((IN_ORDER(tmp,req) ||
 		    !IN_ORDER(tmp,tmp->next)) &&
 		    IN_ORDER(req,tmp->next))
 			break;
+
 	req->next=tmp->next;
 	tmp->next=req;
+
 	sti();
 }
 
@@ -100,13 +108,17 @@ static void make_request(int major,int rw, struct buffer_head * bh)
 		else
 			rw = WRITE;
 	}
+
 	if (rw!=READ && rw!=WRITE)
 		panic("Bad block dev command, must be R/W/RA/WA");
+
 	lock_buffer(bh);
+
 	if ((rw == WRITE && !bh->b_dirt) || (rw == READ && bh->b_uptodate)) {
 		unlock_buffer(bh);
 		return;
 	}
+
 repeat:
 /* we don't allow the write-requests to fill up the queue completely:
  * we want some room for reads: they take precedence. The last third
@@ -116,10 +128,12 @@ repeat:
 		req = request+NR_REQUEST;
 	else
 		req = request+((NR_REQUEST*2)/3);
+
 /* find an empty request */
 	while (--req >= request)
 		if (req->dev<0)
 			break;
+
 /* if none found, sleep on new requests: check for rw_ahead */
 	if (req < request) {
 		if (rw_ahead) {
@@ -129,19 +143,21 @@ repeat:
 		sleep_on(&wait_for_request);
 		goto repeat;
 	}
+
 /* fill up the request-info, and add it to the queue */
-	req->dev = bh->b_dev;
+	req->dev = bh->b_dev; // 用缓冲块中b_dev设置请求项
 	req->cmd = rw;
 	req->errors=0;
-	req->sector = bh->b_blocknr<<1;
+	req->sector = bh->b_blocknr<<1; // 用缓冲块中的b_blocknr设置请求项
 	req->nr_sectors = 2;
 	req->buffer = bh->b_data;
 	req->waiting = NULL;
 	req->bh = bh;
 	req->next = NULL;
-	add_request(major+blk_dev,req);
+	add_request(major+blk_dev,req); // 加载请求项
 }
 
+// 底层块设备操作
 void ll_rw_block(int rw, struct buffer_head * bh)
 {
 	unsigned int major;
@@ -151,6 +167,8 @@ void ll_rw_block(int rw, struct buffer_head * bh)
 		printk("Trying to read nonexistent block-device\n\r");
 		return;
 	}
+
+	// 设置请求项
 	make_request(major,rw,bh);
 }
 

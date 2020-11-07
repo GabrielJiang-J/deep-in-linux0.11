@@ -23,7 +23,9 @@ int file_read(struct m_inode * inode, struct file * filp, char * buf, int count)
 		return 0;
 
 	while (left) {
+		// 通过文件偏移指针，计算出块号
 		if (nr = bmap(inode,(filp->f_pos)/BLOCK_SIZE)) {
+			// inode->i_dev就是设备号，nr就是块号
 			if (!(bh=bread(inode->i_dev,nr)))
 				break;
 		} else
@@ -50,6 +52,7 @@ int file_read(struct m_inode * inode, struct file * filp, char * buf, int count)
 	return (count-left)?(count-left):-ERROR;
 }
 
+// 普通文件内容写入缓冲块
 int file_write(struct m_inode * inode, struct file * filp, char * buf, int count)
 {
 	off_t pos;
@@ -68,9 +71,11 @@ int file_write(struct m_inode * inode, struct file * filp, char * buf, int count
 		pos = filp->f_pos;
 
 	while (i<count) {
+		// 通过文件偏移指针，计算出块号
 		if (!(block = create_block(inode,pos/BLOCK_SIZE)))
 			break;
 
+		// inode->i_dev就是设备号，block就是块号
 		if (!(bh=bread(inode->i_dev,block)))
 			break;
 

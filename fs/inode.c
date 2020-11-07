@@ -357,6 +357,7 @@ struct m_inode * iget(int dev,int nr)
 	return inode;
 }
 
+// 读取inode
 static void read_inode(struct m_inode * inode)
 {
 	struct super_block * sb;
@@ -368,12 +369,15 @@ static void read_inode(struct m_inode * inode)
 	if (!(sb=get_super(inode->i_dev)))
 		panic("trying to read inode without dev");
 
+	// 通过inode号和超级快信息，确定了块号block
 	block = 2 + sb->s_imap_blocks + sb->s_zmap_blocks +
 		(inode->i_num-1)/INODES_PER_BLOCK;
 
+	// inode->i_dev就是设备号，block就是块号
 	if (!(bh=bread(inode->i_dev,block)))
 		panic("unable to read i-node block");
 
+	// 从缓冲块中提取inode，载入inode_table[32]
 	*(struct d_inode *)inode =
 		((struct d_inode *)bh->b_data)
 			[(inode->i_num-1)%INODES_PER_BLOCK];
@@ -383,6 +387,7 @@ static void read_inode(struct m_inode * inode)
 	unlock_inode(inode);
 }
 
+// 写入inode
 static void write_inode(struct m_inode * inode)
 {
 	struct super_block * sb;
@@ -399,12 +404,15 @@ static void write_inode(struct m_inode * inode)
 	if (!(sb=get_super(inode->i_dev)))
 		panic("trying to write inode without device");
 
+	// 通过inode号和超级快信息，确定了块号block
 	block = 2 + sb->s_imap_blocks + sb->s_zmap_blocks +
 		(inode->i_num-1)/INODES_PER_BLOCK;
 
+	// inode->i_dev就是设备号，block就是块号
 	if (!(bh=bread(inode->i_dev,block)))
 		panic("unable to read i-node block");
 
+	// 从inode_table[32]中提取inode，载入缓冲块
 	((struct d_inode *)bh->b_data)
 		[(inode->i_num-1)%INODES_PER_BLOCK] =
 			*(struct d_inode *)inode;

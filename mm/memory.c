@@ -421,12 +421,13 @@ void do_no_page(unsigned long error_code,unsigned long address)
 	address &= 0xfffff000;
 	tmp = address - current->start_code;
 
+	// executable为进程所在文件inode，end_data为程序代码末端
 	if (!current->executable || tmp >= current->end_data) {
 		get_empty_page(address);
 		return;
 	}
 
-	if (share_page(tmp))
+	if (share_page(tmp)) // 检查是否与其他进程共享页面
 		return;
 
 	if (!(page = get_free_page()))
@@ -435,9 +436,9 @@ void do_no_page(unsigned long error_code,unsigned long address)
 /* remember that 1 block is used for header */
 	block = 1 + tmp/BLOCK_SIZE;
 
+	// 从磁盘加载内容到页面page中，一次加载4KB内容
 	for (i=0 ; i<4 ; block++,i++)
 		nr[i] = bmap(current->executable,block);
-
 	bread_page(page,current->executable->i_dev,nr);
 
 	i = tmp + 4096 - current->end_data;
@@ -447,7 +448,7 @@ void do_no_page(unsigned long error_code,unsigned long address)
 		*(char *)tmp = 0;
 	}
 
-	if (put_page(page,address))
+	if (put_page(page,address)) // 将页面page映射到线性地址空间
 		return;
 
 	free_page(page);

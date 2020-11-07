@@ -193,10 +193,13 @@ static struct buffer_head * find_buffer(int dev, int block)
 {		
 	struct buffer_head * tmp;
 
+	// 遍历哈希表进行比对
 	for (tmp = hash(dev,block) ; tmp != NULL ; tmp = tmp->b_next)
+		// 如果找到现成的就返回tmp
 		if (tmp->b_dev==dev && tmp->b_blocknr==block)
 			return tmp;
 
+	// 如果没找到现成的就返回NULL
 	return NULL;
 }
 
@@ -212,6 +215,7 @@ struct buffer_head * get_hash_table(int dev, int block)
 	struct buffer_head * bh;
 
 	for (;;) {
+		// 查找设备号和块号符合要求的缓冲块
 		if (!(bh=find_buffer(dev,block)))
 			return NULL;
 
@@ -234,12 +238,15 @@ struct buffer_head * get_hash_table(int dev, int block)
  * The algoritm is changed: hopefully better, and an elusive bug removed.
  */
 #define BADNESS(bh) (((bh)->b_dirt<<1)+(bh)->b_lock)
-// 在缓冲区得到与dev、block匹配的或空闲的缓冲块
+// 申请缓冲块，在缓冲区得到与dev、block匹配的或空闲的缓冲块
 struct buffer_head * getblk(int dev,int block)
 {
 	struct buffer_head * tmp, * bh;
 
 repeat:
+	// 如果发现缓冲块与指定设备dev、指定数据块block已经绑定，
+	// 返回，直接使用；如果没有找到符合指定标准的绑定缓冲块，
+	// 就申请新缓冲块
 	if (bh = get_hash_table(dev,block))
 		return bh;
 
@@ -284,10 +291,10 @@ repeat:
 /* and that it's unused (b_count=0), unlocked (b_lock=0), and clean */
 	bh->b_count=1;
 	bh->b_dirt=0;
-	bh->b_uptodate=0;
+	bh->b_uptodate=0; // 数据还没有被更新，还不能被进程共享
 	remove_from_queues(bh);
-	bh->b_dev=dev;
-	bh->b_blocknr=block;
+	bh->b_dev=dev; // 对新缓冲块的设备号进行设置
+	bh->b_blocknr=block; // 对新缓冲块的块号进行设置
 	insert_into_queues(bh);
 
 	return bh;
@@ -310,13 +317,15 @@ void brelse(struct buffer_head * buf)
  * bread() reads a specified block and returns the buffer that contains
  * it. It returns NULL if the block was unreadable.
  */
+// 读取底层块设备数据
 struct buffer_head * bread(int dev,int block)
 {
 	struct buffer_head * bh;
 
-	if (!(bh=getblk(dev,block)))
+	if (!(bh=getblk(dev,block))) //申请缓冲块是要用到设备号和块号
 		panic("bread: getblk returned NULL\n");
 
+	// 申请到缓冲块后，先看是否已更新，以此决定是否返回使用该缓冲块
 	if (bh->b_uptodate)
 		return bh;
 
@@ -324,6 +333,8 @@ struct buffer_head * bread(int dev,int block)
 
 	wait_on_buffer(bh);
 
+	// 从磁盘读进内容后，再次检查是否已更新，以此决定是否返回使用
+	// 该缓冲块
 	if (bh->b_uptodate)
 		return bh;
 

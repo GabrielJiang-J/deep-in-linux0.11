@@ -396,7 +396,7 @@ restart_interp:
 	p += change_ldt(ex.a_text,page)-MAX_ARG_PAGES*PAGE_SIZE;
 	p = (unsigned long) create_tables((char *)p,argc,envc);
 
-	current->brk = ex.a_bss +
+	current->brk = ex.a_bss + // 以下是根据文件头ex中提供的信息，设置程序控制字段
 		(current->end_data = ex.a_data +
 		(current->end_code = ex.a_text));
 

@@ -116,6 +116,7 @@ void put_super(int dev)
 	return;
 }
 
+// 读取超级块
 static struct super_block * read_super(int dev)
 {
 	struct super_block * s;
@@ -147,6 +148,7 @@ static struct super_block * read_super(int dev)
 
 	lock_super(s);
 
+	// 1就是块号，超级块是设备中1号数据块
 	if (!(bh = bread(dev,1))) {
 		s->s_dev=0;
 		free_super(s);
@@ -170,13 +172,18 @@ static struct super_block * read_super(int dev)
 	for (i=0;i<Z_MAP_SLOTS;i++)
 		s->s_zmap[i] = NULL;
 
+	// 2是第一个inode位图的块号
 	block=2;
+
+	// 往缓冲块中载入inode位图
+	// block不断累加，依据此加载超级块位图
 	for (i=0 ; i < s->s_imap_blocks ; i++)
 		if (s->s_imap[i]=bread(dev,block))
 			block++;
 		else
 			break;
 
+	// 往缓冲块中载入逻辑块位图
 	for (i=0 ; i < s->s_zmap_blocks ; i++)
 		if (s->s_zmap[i]=bread(dev,block))
 			block++;

@@ -65,11 +65,24 @@ __asm__("incl %0\n\tandl $4095,%0"::"m" (head))
 
 typedef char buffer_block[BLOCK_SIZE];
 
+// 主要负责进程与缓冲区中的缓冲块的数据交互，在确保数据交互正确的前提下，
+// 让数据在缓冲区中的停留时间尽可能长。
 struct buffer_head {
 	char * b_data;			/* pointer to data block (1024 bytes) */
+	// 内核通过b_dev和b_blocknr，把缓冲块和硬盘数据块的关系绑定
 	unsigned long b_blocknr;	/* block number */
 	unsigned short b_dev;		/* device (0 = free) */
+
+	// b_uptodate针对进程方向。只要缓冲块b_uptodate字段被设置为1，
+	// 缓冲块中的数据已经是数据块中最新的，内核就可以放心地支持
+	// 进程共享缓冲块的数据；如果b_uptodate为0，就提醒内核缓冲块
+	// 并没有用绑定的数据块中的数据更新，不支持进程共享该缓冲块；
 	unsigned char b_uptodate;
+
+	// b_dirt针对磁盘方向。只要缓冲块的b_dirt字段被设置为1，
+	// 就是告诉内核，这个缓冲块中的内容已经被进程方向的数据
+	// 改写了，最终需要同步到磁盘上；如果b_dirt为0，就不需要
+	// 同步；
 	unsigned char b_dirt;		/* 0-clean,1-dirty */
 	unsigned char b_count;		/* users using this block */
 	unsigned char b_lock;		/* 0 - ok, 1 -locked */

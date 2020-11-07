@@ -272,17 +272,24 @@ static void read_intr(void)
 	if (win_result()) {
 		bad_rw_intr();
 		do_hd_request();
+
 		return;
 	}
+
 	port_read(HD_DATA,CURRENT->buffer,256);
 	CURRENT->errors = 0;
 	CURRENT->buffer += 512;
 	CURRENT->sector++;
+
 	if (--CURRENT->nr_sectors) {
 		do_hd = &read_intr;
 		return;
 	}
+
+	// 处理完一个请求项后处理善后工作
 	end_request(1);
+
+	// 如果还有剩余请求项，继续下达交互指令；如果没有，就返回
 	do_hd_request();
 }
 
@@ -293,6 +300,7 @@ static void write_intr(void)
 		do_hd_request();
 		return;
 	}
+
 	if (--CURRENT->nr_sectors) {
 		CURRENT->sector++;
 		CURRENT->buffer += 512;
@@ -300,7 +308,11 @@ static void write_intr(void)
 		port_write(HD_DATA,CURRENT->buffer,256);
 		return;
 	}
+
+	// 处理完一个请求项后处理善后工作
 	end_request(1);
+
+	// 如果还有剩余请求项，继续下达交互指令；如果没有，就返回
 	do_hd_request();
 }
 
@@ -318,19 +330,28 @@ void do_hd_request(void)
 	unsigned int sec,head,cyl;
 	unsigned int nsect;
 
+	// 判断是否还有剩余的请求项
 	INIT_REQUEST;
+
+	// 从请求项中获取设备号
 	dev = MINOR(CURRENT->dev);
+
+	// 从请求项中获取块号
 	block = CURRENT->sector;
+
 	if (dev >= 5*NR_HD || block+2 > hd[dev].nr_sects) {
 		end_request(0);
 		goto repeat;
 	}
+
 	block += hd[dev].start_sect;
 	dev /= 5;
+	// 通过块号block来换算磁头、扇区、柱面等参数
 	__asm__("divl %4":"=a" (block),"=d" (sec):"0" (block),"1" (0),
 		"r" (hd_info[dev].sect));
 	__asm__("divl %4":"=a" (cyl),"=d" (head):"0" (block),"1" (0),
 		"r" (hd_info[dev].head));
+
 	sec++;
 	nsect = CURRENT->nr_sectors;
 	if (reset) {
@@ -339,20 +360,25 @@ void do_hd_request(void)
 		reset_hd(CURRENT_DEV);
 		return;
 	}
+
 	if (recalibrate) {
 		recalibrate = 0;
 		hd_out(dev,hd_info[CURRENT_DEV].sect,0,0,0,
 			WIN_RESTORE,&recal_intr);
 		return;
 	}	
+
 	if (CURRENT->cmd == WRITE) {
 		hd_out(dev,nsect,sec,head,cyl,WIN_WRITE,&write_intr);
+
 		for(i=0 ; i<3000 && !(r=inb_p(HD_STATUS)&DRQ_STAT) ; i++)
 			/* nothing */ ;
+
 		if (!r) {
 			bad_rw_intr();
 			goto repeat;
 		}
+
 		port_write(HD_DATA,CURRENT->buffer,256);
 	} else if (CURRENT->cmd == READ) {
 		hd_out(dev,nsect,sec,head,cyl,WIN_READ,&read_intr);

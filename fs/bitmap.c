@@ -79,6 +79,7 @@ void free_block(int dev, int block)
 	sb->s_zmap[block/8192]->b_dirt = 1;
 }
 
+// 在设备dev申请一个数据块
 int new_block(int dev)
 {
 	struct buffer_head * bh;
@@ -113,6 +114,7 @@ int new_block(int dev)
 
 	clear_block(bh->b_data);
 
+	// 将该缓冲块设置已更新
 	bh->b_uptodate = 1;
 	bh->b_dirt = 1;
 
