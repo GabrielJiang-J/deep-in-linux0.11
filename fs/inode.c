@@ -282,13 +282,20 @@ struct m_inode * get_pipe_inode(void)
 	if (!(inode = get_empty_inode()))
 		return NULL;
 
+	// 申请页面作为管道
 	if (!(inode->i_size=get_free_page())) {
 		inode->i_count = 0;
 		return NULL;
 	}
 
+	// 能操作管道的进程“能且仅能”有两个，因此设置引用计数为2
 	inode->i_count = 2;	/* sum of readers/writers */
+
+	// PIPE_HEAD为写管道指针，PIPE_TAIL为读管道指针，都设置为
+	// 申请到的空闲页面的起始位置0
 	PIPE_HEAD(*inode) = PIPE_TAIL(*inode) = 0;
+
+	// 设置为管道文件属性
 	inode->i_pipe = 1;
 
 	return inode;

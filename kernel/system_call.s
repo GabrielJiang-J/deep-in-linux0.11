@@ -116,7 +116,7 @@ ret_from_sys_call:
 	movl %ebx,signal(%eax)
 	incl %ecx
 	pushl %ecx
-	call _do_signal
+	call _do_signal // 准备处理信号
 	popl %eax
 3:	popl %eax
 	popl %ebx

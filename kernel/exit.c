@@ -38,10 +38,12 @@ static inline int send_sig(long sig,struct task_struct * p,int priv)
 {
 	if (!p || sig<1 || sig>32)
 		return -EINVAL;
+
 	if (priv || (current->euid==p->euid) || suser())
 		p->signal |= (1<<(sig-1));
 	else
 		return -EPERM;
+
 	return 0;
 }
 
@@ -79,6 +81,7 @@ int sys_kill(int pid,int sig)
 		if (*p && (*p)->pgrp == -pid)
 			if (err = send_sig(sig,*p,0))
 				retval = err;
+
 	return retval;
 }
 

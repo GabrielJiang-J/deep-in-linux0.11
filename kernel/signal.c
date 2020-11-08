@@ -51,12 +51,15 @@ int sys_signal(int signum, long handler, long restorer)
 
 	if (signum<1 || signum>32 || signum==SIGKILL)
 		return -1;
+
 	tmp.sa_handler = (void (*)(int)) handler;
 	tmp.sa_mask = 0;
 	tmp.sa_flags = SA_ONESHOT | SA_NOMASK;
+	// 绑定现场恢复函数
 	tmp.sa_restorer = (void (*)(void)) restorer;
 	handler = (long) current->sigaction[signum-1].sa_handler;
 	current->sigaction[signum-1] = tmp;
+
 	return handler;
 }
 
@@ -93,27 +96,34 @@ void do_signal(long signr,long eax, long ebx, long ecx, long edx,
 	sa_handler = (unsigned long) sa->sa_handler;
 	if (sa_handler==1)
 		return;
+
 	if (!sa_handler) {
 		if (signr==SIGCHLD)
 			return;
 		else
 			do_exit(1<<(signr-1));
 	}
+
 	if (sa->sa_flags & SA_ONESHOT)
 		sa->sa_handler = NULL;
+
 	*(&eip) = sa_handler;
 	longs = (sa->sa_flags & SA_NOMASK)?7:8;
 	*(&esp) -= longs;
 	verify_area(esp,longs*4);
 	tmp_esp=esp;
+
 	put_fs_long((long) sa->sa_restorer,tmp_esp++);
 	put_fs_long(signr,tmp_esp++);
+
 	if (!(sa->sa_flags & SA_NOMASK))
 		put_fs_long(current->blocked,tmp_esp++);
+
 	put_fs_long(eax,tmp_esp++);
 	put_fs_long(ecx,tmp_esp++);
 	put_fs_long(edx,tmp_esp++);
 	put_fs_long(eflags,tmp_esp++);
 	put_fs_long(old_eip,tmp_esp++);
+
 	current->blocked |= sa->sa_mask;
 }
